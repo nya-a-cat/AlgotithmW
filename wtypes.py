@@ -49,6 +49,10 @@ def ftv(t) -> set:
         return ftv(t.input) | ftv(t.output)
     if isinstance(t, Scheme):
         return ftv(t.t) - set(t.vars)
+    if isinstance(t, TArray):
+        return ftv(t.element_type)
+    if isinstance(t, TRecord):
+        return set().union(*[ftv(v) for v in t.fields.values()]) if t.fields else set()
     if isinstance(t, list): # 处理列表
         return set().union(*[ftv(x) for x in t])
     if isinstance(t, dict): # 处理环境 env

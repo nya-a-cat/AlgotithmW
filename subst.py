@@ -27,9 +27,10 @@ def apply_subst(typ, subst):
         # then new_subst will be {"b": TBool()} (excluding "a" from subst)
         new_subst = {k: v for k, v in subst.items() if k not in typ.vars}
         return Scheme(typ.vars, apply_subst(typ.t, new_subst))
-    # In case we have a list or dict of types to substitute
-
-    # 暂时不知道有啥用
+    elif isinstance(typ, TArray):
+        return TArray(apply_subst(typ.element_type, subst))
+    elif isinstance(typ, TRecord):
+        return TRecord({k: apply_subst(v, subst) for k, v in typ.fields.items()})
     elif isinstance(typ, dict):
         return {k: apply_subst(v, subst) for k, v in typ.items()}
     
