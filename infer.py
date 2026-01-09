@@ -140,27 +140,49 @@ class InferContext:
                 return compose(s2, s1), t2
 
             case EArray(elements):
+                if debug:
+                    print(f"{indent}[数组元素推导] 共 {len(elements)} 个")
                 if not elements:
-                    return {}, TArray(self.new_tvar())
-                
-                s_accum, t_elem = self.infer(env, elements[0])
-                for elem in elements[1:]:
-                    s_next, t_next = self.infer(apply_subst(env, s_accum), elem)
+                    t_empty = self.new_tvar()
+                    if debug:
+                        print(f"{indent}空数组，元素类型设为 {t_empty}")
+                        print(f"{indent}=> {TArray(t_empty)}\n")
+                    return {}, TArray(t_empty)
+
+                if debug:
+                    print(f"{indent}[推导第 0 个元素]")
+                s_accum, t_elem = self.infer(env, elements[0], debug, depth+1)
+                for i, elem in enumerate(elements[1:], start=1):
+                    if debug:
+                        print(f"{indent}[推导第 {i} 个元素]")
+                    s_next, t_next = self.infer(apply_subst(env, s_accum), elem, debug, depth+1)
+                    if debug:
+                        print(f"{indent}统一: {apply_subst(t_elem, s_next)} = {t_next}")
                     s_u = unify(apply_subst(t_elem, s_next), t_next)
                     s_accum = compose(s_u, compose(s_next, s_accum))
                     t_elem = apply_subst(t_elem, s_u)
+                if debug:
+                    print(f"{indent}=> {TArray(t_elem)}\n")
                 return s_accum, TArray(t_elem)
 
             case ERecord(fields):
+                if debug:
+                    print(f"{indent}[记录字段推导] 共 {len(fields)} 项")
                 res_fields = {}
                 s_accum = {}
                 for name, field_expr in fields.items():
-                    s_item, t_item = self.infer(apply_subst(env, s_accum), field_expr)
+                    if debug:
+                        print(f"{indent}字段 {name}:")
+                    s_item, t_item = self.infer(apply_subst(env, s_accum), field_expr, debug, depth+1)
+                    if debug and s_item:
+                        print(f"{indent}字段替换: {dict(s_item)}")
                     s_accum = compose(s_item, s_accum)
                     res_fields[name] = t_item
-                
                 final_fields = {k: apply_subst(v, s_accum) for k, v in res_fields.items()}
-                return s_accum, TRecord(final_fields)
+                result = TRecord(final_fields)
+                if debug:
+                    print(f"{indent}=> {result}\n")
+                return s_accum, result
 
             case _:
                 raise Exception(f"Unknown expression type: {type(expr)}")

@@ -25,7 +25,7 @@ class TArr(Type):
 class Scheme(Type):
     vars: list[str] # 泛型变量列表
     t: Type
-    def __repr__(self): return f"∀(poly){','.join(self.vars)}. {self.t}"
+    def __repr__(self): return f"(forall){','.join(self.vars)}. {self.t}"
 
 @dataclass
 class TArray(Type):
